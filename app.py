@@ -5,9 +5,9 @@ Hajj Safety Guide — RAG Streamlit App
 import json
 import time
 import requests
+import numpy as np
 import streamlit as st
 import google.genai as genai
-import chromadb
 from pathlib import Path
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -21,7 +21,6 @@ GEMINI_MODEL   = "gemini-2.5-flash"
 
 BASE_DIR        = Path(__file__).parent
 EMBEDDINGS_FILE = BASE_DIR / "Hajj_embeddings.json"
-COLLECTION_NAME = "hajj_safety"
 TOP_K           = 7
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -39,30 +38,17 @@ SYSTEM_PROMPT = """\
 # ── Cached resources ──────────────────────────────────────────────────────────
 
 @st.cache_resource(show_spinner="جارٍ تحميل قاعدة البيانات...")
-def load_collection():
-    # In-memory client — works on any OS/Python version, no disk persistence needed
-    # because Hajj_embeddings.json is bundled in the repo and rebuilt once per session
-    client = chromadb.Client()
-    collection = client.get_or_create_collection(
-        name=COLLECTION_NAME,
-        metadata={"hnsw:space": "cosine"},
-    )
-    _ingest(collection)
-    return collection
-
-
-def _ingest(collection):
+def load_index():
     with open(EMBEDDINGS_FILE, encoding="utf-8") as f:
         data = json.load(f)
     chunks = data["chunks"]
-    for i in range(0, len(chunks), 100):
-        batch = chunks[i : i + 100]
-        collection.upsert(
-            ids=[c["id"] for c in batch],
-            embeddings=[c["embedding"] for c in batch],
-            documents=[c["text"] for c in batch],
-            metadatas=[{"context": c["context"]} for c in batch],
-        )
+    texts    = [c["text"]      for c in chunks]
+    contexts = [c["context"]   for c in chunks]
+    matrix   = np.array([c["embedding"] for c in chunks], dtype=np.float32)
+    # Pre-normalise rows so retrieval is a simple dot product
+    norms = np.linalg.norm(matrix, axis=1, keepdims=True)
+    matrix = matrix / np.maximum(norms, 1e-9)
+    return texts, contexts, matrix
 
 
 @st.cache_resource
@@ -89,24 +75,14 @@ def embed_query(text: str) -> list:
     raise RuntimeError("Failed to embed query.")
 
 
-def retrieve(collection, query: str) -> list:
-    q_emb = embed_query(query)
-    results = collection.query(
-        query_embeddings=[q_emb],
-        n_results=TOP_K,
-        include=["documents", "metadatas", "distances"],
-    )
+def retrieve(texts, contexts, matrix, query: str) -> list:
+    q_emb = np.array(embed_query(query), dtype=np.float32)
+    q_emb /= max(np.linalg.norm(q_emb), 1e-9)
+    scores = matrix @ q_emb
+    top_idx = np.argsort(scores)[::-1][:TOP_K]
     return [
-        {
-            "text": doc,
-            "context": meta["context"],
-            "score": round(1 - dist, 4),
-        }
-        for doc, meta, dist in zip(
-            results["documents"][0],
-            results["metadatas"][0],
-            results["distances"][0],
-        )
+        {"text": texts[i], "context": contexts[i], "score": round(float(scores[i]), 4)}
+        for i in top_idx
     ]
 
 
@@ -199,11 +175,10 @@ st.markdown("""
 st.divider()
 
 # ── Load resources ────────────────────────────────────────────────────────────
-collection   = load_collection()
+texts, contexts, matrix = load_index()
 gemini_client = load_gemini()
 
-chunk_count = collection.count()
-st.caption(f"✅ قاعدة المعرفة جاهزة — {chunk_count} مقطع | النموذج: {GEMINI_MODEL}")
+st.caption(f"✅ قاعدة المعرفة جاهزة — {len(texts)} مقطع | النموذج: {GEMINI_MODEL}")
 
 # ── Session state ─────────────────────────────────────────────────────────────
 if "messages" not in st.session_state:
@@ -265,7 +240,7 @@ if submitted and user_input.strip():
 
     with st.spinner("🔍 جارٍ البحث وتوليد الإجابة..."):
         try:
-            chunks  = retrieve(collection, question)
+            chunks  = retrieve(texts, contexts, matrix, question)
             answer  = generate_answer(gemini_client, question, chunks)
         except Exception as e:
             answer  = f"❌ حدث خطأ: {e}"
