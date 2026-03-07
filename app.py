@@ -177,19 +177,7 @@ st.markdown("""
     margin: 0 0 20px;
     direction: rtl;
 }
-.status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    background: rgba(0,184,148,0.08);
-    border: 1px solid rgba(0,184,148,0.22);
-    border-radius: 40px;
-    padding: 5px 16px;
-    font-size: 0.78rem;
-    font-family: var(--font-en);
-    color: var(--green);
-    letter-spacing: 0.3px;
-}
+.status-pill { display: none !important; }
 .status-dot {
     width: 7px; height: 7px;
     border-radius: 50%;
@@ -532,10 +520,6 @@ st.markdown(f"""
     <div class="kaaba-wrap">🕋</div>
     <h1>دليل الشروط الوقائية في المشاعر المقدسة</h1>
     <p>نظام استجابة ذكي · دليل الدفاع المدني السعودي · منى · مزدلفة · عرفة</p>
-    <span class="status-pill">
-        <span class="status-dot"></span>
-        {len(texts)} chunks · {GEMINI_MODEL}
-    </span>
 </div>
 <hr class="divider">
 """, unsafe_allow_html=True)
@@ -544,19 +528,29 @@ st.markdown(f"""
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# ── Suggested questions ───────────────────────────────────────────────────────
+# ── Suggested questions (click to ask and get answer) ───────────────────────────
 if not st.session_state.messages:
     st.markdown('<div class="sug-label">💡 أسئلة مقترحة</div>', unsafe_allow_html=True)
     suggestions = [
         "ما هي اشتراطات طفايات الحريق في مخيمات الحجاج؟",
         "ما المواد الممنوع استخدامها في المشاعر المقدسة؟",
-        "ما مهام مختص السلامة في المخيم؟",
         "ما اشتراطات مخارج الطوارئ في مخيمات عرفة؟",
-        "What are the electrical safety rules in pilgrim camps?",
     ]
     for s in suggestions:
         if st.button(s, use_container_width=True, key=f"sug_{hash(s)}"):
             st.session_state.messages.append({"role": "user", "content": s})
+            with st.spinner("جارٍ البحث وتوليد الإجابة..."):
+                try:
+                    chunks = retrieve(texts, contexts, matrix, s)
+                    answer = generate_answer(gemini_client, s, chunks)
+                except Exception as e:
+                    answer = f"❌ حدث خطأ: {e}"
+                    chunks = []
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": answer,
+                "sources": chunks,
+            })
             st.rerun()
 
 # ── Render chat history ───────────────────────────────────────────────────────
@@ -571,21 +565,12 @@ for msg in st.session_state.messages:
 </div>""", unsafe_allow_html=True)
     else:
         body_html = md_to_html(msg["content"])
-        sources_html = ""
-        if msg.get("sources"):
-            chips = "".join(
-                f'<span class="src-chip">{_html.escape(s["context"])} · {s["score"]:.0%}</span>'
-                for s in msg["sources"]
-            )
-            sources_html = f'<div class="sources-row">{chips}</div>'
-
         st.markdown(f"""
 <div class="msg-wrap">
   <div class="msg-assistant">
     <div class="bot-avatar">🤖</div>
     <div class="bubble">
       {body_html}
-      {sources_html}
     </div>
   </div>
 </div>""", unsafe_allow_html=True)
