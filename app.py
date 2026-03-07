@@ -12,11 +12,11 @@ from pathlib import Path
 
 # ── Config ────────────────────────────────────────────────────────────────────
 # API keys come from st.secrets (Streamlit Cloud) or fallback to hardcoded for local dev
-FIREWORKS_API_KEY     = st.secrets.get("FIREWORKS_API_KEY", "fw_6rPYUurMVngZeEgcrJGbub")
+FIREWORKS_API_KEY     = st.secrets["FIREWORKS_API_KEY"]
 FIREWORKS_EMBED_MODEL = "accounts/fireworks/models/qwen3-embedding-8b"
 FIREWORKS_ENDPOINT    = "https://api.fireworks.ai/inference/v1/embeddings"
 
-GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "AIzaSyDNHtgqe4b3WKaMbMkTkIh9o8murhahMt4")
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 GEMINI_MODEL   = "gemini-2.5-flash"
 
 BASE_DIR        = Path(__file__).parent
