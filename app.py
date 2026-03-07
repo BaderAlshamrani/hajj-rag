@@ -9,6 +9,7 @@ import time
 import requests
 import numpy as np
 import streamlit as st
+import streamlit.components.v1 as components
 import google.genai as genai
 from pathlib import Path
 
@@ -41,7 +42,7 @@ SYSTEM_PROMPT = """\
 - استند حصراً إلى المقاطع المسترجعة من الدليل المُرفقة بكل سؤال.
 - إذا لم تجد إجابة في المقاطع المُقدَّمة، قل ذلك صراحةً ولا تخترع معلومات.
 - أجب بنفس لغة السؤال (عربي أو إنجليزي).
-- اجعل إجابتك واضحة ومنظمة، واستخدم النقاط عند الحاجة.\
+- اجعل إجابتك واضحة ومنظمة، واستخدم التعداد بالأرقام (١، ٢، ٣ أو 1. 2. 3.) ولا تستخدم النجمة (*) في القوائم.\
 """
 
 # ── Inject Google Fonts + full design system ──────────────────────────────────
@@ -405,6 +406,16 @@ st.markdown("""
 .stCaption { display: none !important; }
 [data-testid="stHorizontalBlock"] { gap: 10px !important; }
 
+/* Hide "Press Enter to submit form" hint (Streamlit injects it in form) */
+[data-testid="stForm"] [data-testid="stMarkdown"] { display: none !important; }
+[data-testid="stForm"] p { display: none !important; }
+[data-testid="stForm"] small { display: none !important; }
+[data-testid="stForm"] [class*="instruction"] { display: none !important; }
+/* Keep submit button content visible (إرسال) */
+[data-testid="stForm"] .stFormSubmitButton p,
+[data-testid="stForm"] .stFormSubmitButton small,
+[data-testid="stForm"] .stFormSubmitButton button * { display: block !important; visibility: visible !important; }
+
 /* ── Clear button ── */
 .clear-wrap .stButton > button {
     background: transparent !important;
@@ -450,8 +461,14 @@ def load_gemini():
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def md_to_html(text: str) -> str:
-    """Convert basic Gemini markdown to safe HTML for injection."""
+    """Convert basic Gemini markdown to safe HTML for injection. No asterisk bullets."""
     text = _html.escape(text)
+    # Convert markdown list lines (starting with * or -) to bullet • so asterisk is not shown
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if re.match(r"^\s*[\*\-]\s+", line):
+            lines[i] = re.sub(r"^\s*[\*\-]\s+", "• ", line)
+    text = "\n".join(lines)
     text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
     text = re.sub(r'\*(.+?)\*',     r'<em>\1</em>',         text)
     text = text.replace("\n", "<br>")
@@ -519,7 +536,7 @@ st.markdown(f"""
 <div class="app-header">
     <div class="kaaba-wrap">🕋</div>
     <h1>دليل الشروط الوقائية في المشاعر المقدسة</h1>
-    <p>نظام استجابة ذكي · دليل الدفاع المدني السعودي · منى · مزدلفة · عرفة</p>
+    <p>دليل رقمي ذكي للإجابة على استفسارات الحماية من الحريق، وأنظمة الطبخ، والسلامة الكهربائية، ومهام مختصي السلامة في المشاعر المقدسة وفق أحدث المعايير التنظيمية المعتمدة لموسم الحج.</p>
 </div>
 <hr class="divider">
 """, unsafe_allow_html=True)
@@ -575,13 +592,44 @@ for msg in st.session_state.messages:
   </div>
 </div>""", unsafe_allow_html=True)
 
+# ── Hide "Press Enter to submit form" via script (runs in page context) ────────
+_hide_form_hint_js = """
+<script>
+(function() {
+  var doc = (window.parent && window.parent.document) ? window.parent.document : document;
+  function hideHint() {
+    var root = doc.querySelector('[data-testid="stForm"]') || doc.body;
+    var walk = function(el) {
+      if (!el) return;
+      if (el.nodeType === 3) {
+        var t = (el.textContent || '').trim();
+        if (/Press\\s+Enter|submit\\s+form/i.test(t) && el.parentNode) {
+          var p = el.parentNode;
+          if (p && p.style) p.style.setProperty('display', 'none', 'important');
+        }
+        return;
+      }
+      if (el.nodeType === 1 && el.childNodes) {
+        for (var i = 0; i < el.childNodes.length; i++) walk(el.childNodes[i]);
+      }
+    };
+    walk(root);
+  }
+  if (doc.readyState === 'complete') hideHint();
+  else doc.addEventListener('DOMContentLoaded', hideHint);
+  [300, 800, 1500, 2500].forEach(function(ms) { setTimeout(hideHint, ms); });
+})();
+</script>
+"""
+components.html(_hide_form_hint_js, height=0)
+
 # ── Input form ────────────────────────────────────────────────────────────────
-with st.form("chat_form", clear_on_submit=True):
+with st.form("chat_form", clear_on_submit=True, enter_to_submit=False):
     col1, col2 = st.columns([6, 1])
     with col1:
         user_input = st.text_input(
             "سؤالك",
-            placeholder="اكتب سؤالك هنا... / Type your question here...",
+            placeholder="اكتب سؤالك هنا...",
             label_visibility="collapsed",
         )
     with col2:
