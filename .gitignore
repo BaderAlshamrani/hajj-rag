@@ -1,0 +1,14 @@
+# Secrets — never commit API keys
+.streamlit/secrets.toml
+
+# Local ChromaDB (rebuilt from Hajj_embeddings.json on cloud)
+chroma_db/
+
+# Embedding checkpoint (temp file)
+Hajj_embeddings_checkpoint.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
