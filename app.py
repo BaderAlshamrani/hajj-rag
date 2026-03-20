@@ -483,9 +483,29 @@ def load_groq():
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def md_to_html(text: str) -> str:
-    """Convert basic Gemini markdown to safe HTML for injection. No asterisk bullets."""
+    """Convert basic markdown + LaTeX to safe HTML. No asterisk bullets."""
+    # ── Strip LaTeX math BEFORE html-escaping ──────────────────────────────
+    # \times → ×
+    text = re.sub(r'\\times', '×', text)
+    # \text{ ... } → contents only
+    text = re.sub(r'\\text\{([^}]*)\}', r'\1', text)
+    # \cdot → ·
+    text = re.sub(r'\\cdot', '·', text)
+    # \frac{a}{b} → a/b
+    text = re.sub(r'\\frac\{([^}]*)\}\{([^}]*)\}', r'\1/\2', text)
+    # \sqrt{x} → √x
+    text = re.sub(r'\\sqrt\{([^}]*)\}', r'√\1', text)
+    # strip remaining \cmd sequences (e.g. \left, \right, \approx …)
+    text = re.sub(r'\\[a-zA-Z]+\b\*?', '', text)
+    # block math  \[ ... \]  — unwrap, keeping inner content on its own line
+    text = re.sub(r'\\\[\s*(.*?)\s*\\\]', r'\n\1\n', text, flags=re.DOTALL)
+    # inline math  \( ... \)  — unwrap
+    text = re.sub(r'\\\(\s*(.*?)\s*\\\)', r'\1', text, flags=re.DOTALL)
+    # lone { } braces left over
+    text = re.sub(r'[{}]', '', text)
+
+    # ── HTML escape then convert markdown ──────────────────────────────────
     text = _html.escape(text)
-    # Convert markdown list lines (starting with * or -) to bullet • so asterisk is not shown
     lines = text.split("\n")
     for i, line in enumerate(lines):
         if re.match(r"^\s*[\*\-]\s+", line):
