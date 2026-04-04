@@ -31,7 +31,8 @@ GROQ_MODEL    = "openai/gpt-oss-120b"
 
 BASE_DIR        = Path(__file__).parent
 EMBEDDINGS_FILE = BASE_DIR / "Hajj_embeddings.json"
-TOP_K           = 7
+TOP_K           = 4
+CHUNK_MAX_CHARS = 600   # truncate each chunk to stay within TPM limit
 # ─────────────────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """\
@@ -549,7 +550,7 @@ def retrieve(texts, contexts, matrix, query: str) -> list:
 
 def generate_answer(groq_client: Groq, question: str, chunks: list) -> str:
     context_block = "\n".join(
-        f"[{i}] ({c['context']})\n{c['text']}" for i, c in enumerate(chunks, 1)
+        f"[{i}] ({c['context']})\n{c['text'][:CHUNK_MAX_CHARS]}" for i, c in enumerate(chunks, 1)
     )
     user_content = (
         f"السياق المسترجع من دليل الشروط الوقائية:\n"
