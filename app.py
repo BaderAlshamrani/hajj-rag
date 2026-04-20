@@ -471,9 +471,13 @@ st.markdown("""
         max-width: 100% !important;
     }
 
-    /* Header */
+    /* Header — force center on mobile */
     .app-header {
-        padding: 24px 4px 16px !important;
+        padding: 24px 8px 16px !important;
+        text-align: center !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
     }
     .kaaba-wrap {
         width: 56px !important; height: 56px !important;
@@ -481,12 +485,15 @@ st.markdown("""
         margin-bottom: 14px !important;
     }
     .app-header h1 {
-        font-size: 1.15rem !important;
+        font-size: 1.1rem !important;
         line-height: 1.5 !important;
+        white-space: normal !important;
+        word-break: break-word !important;
     }
     .app-header p {
-        font-size: 0.8rem !important;
+        font-size: 0.78rem !important;
         line-height: 1.7 !important;
+        max-width: 100% !important;
     }
     .divider { margin: 4px 0 20px !important; }
 
@@ -523,14 +530,26 @@ st.markdown("""
         margin-top: 20px !important;
     }
 
-    /* Send button */
+    /* Send button — shrink to fit text, don't stretch */
+    [data-testid="stForm"] .stFormSubmitButton {
+        width: auto !important;
+        flex: 0 0 auto !important;
+    }
     [data-testid="stForm"] .stFormSubmitButton > button {
-        padding: 8px 16px !important;
-        font-size: 0.85rem !important;
-        height: 38px !important;
+        width: auto !important;
+        min-width: unset !important;
+        padding: 10px 20px !important;
+        font-size: 0.9rem !important;
+        height: 42px !important;
     }
 
-    /* Input text — prevent iOS zoom (must be ≥16px) */
+    /* Input column takes remaining space */
+    [data-testid="stForm"] [data-testid="stHorizontalBlock"] > div:first-child {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    /* Input text — prevent iOS auto-zoom (must be ≥16px) */
     .stTextInput > div > div > input,
     [data-baseweb="base-input"] input {
         font-size: 16px !important;
@@ -542,10 +561,11 @@ st.markdown("""
         padding: 2px 8px !important;
     }
 
-    /* Columns used in form — allow wrap */
+    /* Form row */
     [data-testid="stForm"] [data-testid="stHorizontalBlock"] {
         flex-wrap: nowrap !important;
         align-items: center !important;
+        gap: 6px !important;
     }
 }
 </style>
