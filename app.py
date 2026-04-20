@@ -457,6 +457,98 @@ st.markdown("""
     transform: none !important;
     box-shadow: none !important;
 }
+
+/* ──────────────────────────────────────────────
+   MOBILE  (≤ 640px)
+────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .block-container {
+        padding: 0 14px 100px !important;
+    }
+
+    /* Header */
+    .app-header {
+        padding: 32px 8px 20px !important;
+    }
+    .kaaba-wrap {
+        width: 60px !important; height: 60px !important;
+        font-size: 28px !important;
+        margin-bottom: 16px !important;
+    }
+    .app-header h1 {
+        font-size: 1.25rem !important;
+        line-height: 1.5 !important;
+    }
+    .app-header p {
+        font-size: 0.82rem !important;
+        line-height: 1.7 !important;
+    }
+
+    /* Suggestion chips — stack vertically */
+    [data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    .stButton > button {
+        font-size: 0.85rem !important;
+        padding: 11px 16px !important;
+    }
+
+    /* Chat bubbles */
+    .msg-user .bubble {
+        max-width: 90% !important;
+        font-size: 0.92rem !important;
+        padding: 12px 16px !important;
+    }
+    .msg-assistant .bubble {
+        max-width: 95% !important;
+        font-size: 0.92rem !important;
+        padding: 12px 16px !important;
+    }
+    .bot-avatar {
+        width: 32px !important; height: 32px !important;
+        font-size: 16px !important;
+    }
+    .msg-assistant { gap: 8px !important; }
+
+    /* Input form — stick to bottom */
+    [data-testid="stForm"] {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        margin: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        padding: 10px 12px !important;
+        z-index: 999 !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: none !important;
+        box-shadow: 0 -4px 24px rgba(0,0,0,0.10) !important;
+    }
+    [data-testid="stForm"]:focus-within {
+        border-radius: 20px 20px 0 0 !important;
+    }
+
+    /* Send button — smaller on mobile */
+    [data-testid="stForm"] .stFormSubmitButton > button {
+        padding: 10px 18px !important;
+        font-size: 0.88rem !important;
+        height: 40px !important;
+    }
+
+    /* Input text */
+    .stTextInput > div > div > input,
+    [data-baseweb="base-input"] input {
+        font-size: 0.95rem !important;
+    }
+
+    /* Source chips — smaller */
+    .src-chip {
+        font-size: 0.65rem !important;
+        padding: 2px 9px !important;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
