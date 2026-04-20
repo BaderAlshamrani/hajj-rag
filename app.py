@@ -790,15 +790,15 @@ components.html(_hide_form_hint_js, height=0)
 
 # ── Input form ────────────────────────────────────────────────────────────────
 with st.form("chat_form", clear_on_submit=True, enter_to_submit=False):
-    col1, col2 = st.columns([6, 1])
-    with col1:
+    col_btn, col_input = st.columns([1, 6])
+    with col_btn:
+        submitted = st.form_submit_button("إرسال")
+    with col_input:
         user_input = st.text_input(
             "سؤالك",
             placeholder="اكتب سؤالك هنا...",
             label_visibility="collapsed",
         )
-    with col2:
-        submitted = st.form_submit_button("إرسال", use_container_width=True)
 
 if submitted and user_input.strip():
     question = user_input.strip()
