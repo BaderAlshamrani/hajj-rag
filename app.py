@@ -10,7 +10,6 @@ import requests
 import numpy as np
 import streamlit as st
 import streamlit.components.v1 as components
-from groq import Groq
 from pathlib import Path
 
 # ── Page config (must be the very first Streamlit call) ───────────────────────
@@ -26,8 +25,9 @@ FIREWORKS_API_KEY     = st.secrets["FIREWORKS_API_KEY"]
 FIREWORKS_EMBED_MODEL = "accounts/fireworks/models/qwen3-embedding-8b"
 FIREWORKS_ENDPOINT    = "https://api.fireworks.ai/inference/v1/embeddings"
 
-GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
-GROQ_MODEL   = "moonshotai/kimi-k2-instruct"
+FIREWORKS_CHAT_API_KEY = "fw_PZrxeP3sQqT7QEVr7FR1sf"
+FIREWORKS_CHAT_MODEL   = "accounts/fireworks/models/gpt-oss-20b"
+FIREWORKS_CHAT_URL     = "https://api.fireworks.ai/inference/v1/chat/completions"
 
 BASE_DIR        = Path(__file__).parent
 EMBEDDINGS_FILE = BASE_DIR / "Hajj_embeddings.json"
@@ -476,9 +476,6 @@ def load_index():
     return texts, contexts, matrix
 
 
-@st.cache_resource
-def load_groq():
-    return Groq(api_key=GROQ_API_KEY)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -548,7 +545,7 @@ def retrieve(texts, contexts, matrix, query: str) -> list:
     ]
 
 
-def generate_answer(groq_client, question: str, chunks: list) -> str:
+def generate_answer(question: str, chunks: list) -> str:
     context_block = "\n".join(
         f"[{i}] ({c['context']})\n{c['text'][:CHUNK_MAX_CHARS]}" for i, c in enumerate(chunks, 1)
     )
@@ -559,26 +556,34 @@ def generate_answer(groq_client, question: str, chunks: list) -> str:
         f"{'─' * 60}\n\n"
         f"السؤال: {question}\n\nالإجابة:"
     )
-    stream = groq_client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": user_content},
-        ],
-        temperature=0.2,
-        max_tokens=4096,
-        stream=True,
+    resp = requests.post(
+        FIREWORKS_CHAT_URL,
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {FIREWORKS_CHAT_API_KEY}",
+        },
+        data=json.dumps({
+            "model": FIREWORKS_CHAT_MODEL,
+            "max_tokens": 4096,
+            "temperature": 0.2,
+            "top_p": 1,
+            "top_k": 40,
+            "presence_penalty": 0,
+            "frequency_penalty": 0,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user",   "content": user_content},
+            ],
+        }),
+        timeout=60,
     )
-    result = ""
-    for chunk in stream:
-        delta = chunk.choices[0].delta.content or ""
-        result += delta
-    return result
+    resp.raise_for_status()
+    return resp.json()["choices"][0]["message"]["content"] or ""
 
 
 # ── Load resources ────────────────────────────────────────────────────────────
 texts, contexts, matrix = load_index()
-groq_client = load_groq()
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -608,7 +613,7 @@ if not st.session_state.messages:
             with st.spinner("جارٍ البحث وتوليد الإجابة..."):
                 try:
                     chunks = retrieve(texts, contexts, matrix, s)
-                    answer = generate_answer(groq_client, s, chunks)
+                    answer = generate_answer(s, chunks)
                 except Exception as e:
                     answer = f"❌ حدث خطأ: {e}"
                     chunks = []
@@ -691,7 +696,7 @@ if submitted and user_input.strip():
     with st.spinner("جارٍ البحث وتوليد الإجابة..."):
         try:
             chunks = retrieve(texts, contexts, matrix, question)
-            answer = generate_answer(groq_client, question, chunks)
+            answer = generate_answer(question, chunks)
         except Exception as e:
             answer = f"❌ حدث خطأ: {e}"
             chunks = []
