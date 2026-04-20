@@ -342,8 +342,8 @@ st.markdown("""
 [data-testid="stForm"] {
     background: var(--bg-surface) !important;
     border: 1px solid var(--border) !important;
-    border-radius: var(--radius-pill) !important;
-    padding: 10px 12px 10px 16px !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 14px 16px !important;
     box-shadow: 0 4px 32px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04) !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
@@ -360,7 +360,7 @@ st.markdown("""
 [data-baseweb="input"] input {
     background: transparent !important;
     border: none !important;
-    border-radius: var(--radius-pill) !important;
+    border-radius: var(--radius-md) !important;
     color: var(--text) !important;
     font-family: var(--font-ar) !important;
     font-size: 1rem !important;
@@ -790,15 +790,12 @@ components.html(_hide_form_hint_js, height=0)
 
 # ── Input form ────────────────────────────────────────────────────────────────
 with st.form("chat_form", clear_on_submit=True, enter_to_submit=False):
-    col_btn, col_input = st.columns([1, 6])
-    with col_btn:
-        submitted = st.form_submit_button("إرسال")
-    with col_input:
-        user_input = st.text_input(
-            "سؤالك",
-            placeholder="اكتب سؤالك هنا...",
-            label_visibility="collapsed",
-        )
+    user_input = st.text_input(
+        "سؤالك",
+        placeholder="اكتب سؤالك هنا...",
+        label_visibility="collapsed",
+    )
+    submitted = st.form_submit_button("إرسال", use_container_width=True)
 
 if submitted and user_input.strip():
     question = user_input.strip()
