@@ -10,7 +10,7 @@ import requests
 import numpy as np
 import streamlit as st
 import streamlit.components.v1 as components
-from groq import Groq
+import google.generativeai as genai
 from pathlib import Path
 
 # ── Page config (must be the very first Streamlit call) ───────────────────────
@@ -26,13 +26,13 @@ FIREWORKS_API_KEY     = st.secrets["FIREWORKS_API_KEY"]
 FIREWORKS_EMBED_MODEL = "accounts/fireworks/models/qwen3-embedding-8b"
 FIREWORKS_ENDPOINT    = "https://api.fireworks.ai/inference/v1/embeddings"
 
-GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
-GROQ_MODEL    = "openai/gpt-oss-120b"
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+GEMINI_MODEL   = "gemini-2.0-flash"
 
 BASE_DIR        = Path(__file__).parent
 EMBEDDINGS_FILE = BASE_DIR / "Hajj_embeddings.json"
-TOP_K           = 4
-CHUNK_MAX_CHARS = 600   # truncate each chunk to stay within TPM limit
+TOP_K           = 5
+CHUNK_MAX_CHARS = 800
 # ─────────────────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """\
@@ -477,8 +477,12 @@ def load_index():
 
 
 @st.cache_resource
-def load_groq():
-    return Groq(api_key=GROQ_API_KEY)
+def load_gemini():
+    genai.configure(api_key=GEMINI_API_KEY)
+    return genai.GenerativeModel(
+        model_name=GEMINI_MODEL,
+        system_instruction=SYSTEM_PROMPT,
+    )
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -548,7 +552,7 @@ def retrieve(texts, contexts, matrix, query: str) -> list:
     ]
 
 
-def generate_answer(groq_client: Groq, question: str, chunks: list) -> str:
+def generate_answer(gemini_model, question: str, chunks: list) -> str:
     context_block = "\n".join(
         f"[{i}] ({c['context']})\n{c['text'][:CHUNK_MAX_CHARS]}" for i, c in enumerate(chunks, 1)
     )
@@ -559,32 +563,19 @@ def generate_answer(groq_client: Groq, question: str, chunks: list) -> str:
         f"{'─' * 60}\n\n"
         f"السؤال: {question}\n\nالإجابة:"
     )
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_content},
-    ]
-    completion = groq_client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=messages,
-        temperature=0.2,
-        max_completion_tokens=8192,
-        top_p=1,
-        reasoning_effort="medium",
-        stream=True,
-        stop=None,
+    response = gemini_model.generate_content(
+        user_content,
+        generation_config=genai.types.GenerationConfig(
+            temperature=0.2,
+            max_output_tokens=4096,
+        ),
     )
-    parts = []
-    for chunk in completion:
-        if chunk.choices and len(chunk.choices) > 0:
-            delta = chunk.choices[0].delta
-            if delta and delta.content:
-                parts.append(delta.content)
-    return "".join(parts) if parts else ""
+    return response.text or ""
 
 
 # ── Load resources ────────────────────────────────────────────────────────────
 texts, contexts, matrix = load_index()
-groq_client = load_groq()
+gemini_model = load_gemini()
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -614,7 +605,7 @@ if not st.session_state.messages:
             with st.spinner("جارٍ البحث وتوليد الإجابة..."):
                 try:
                     chunks = retrieve(texts, contexts, matrix, s)
-                    answer = generate_answer(groq_client, s, chunks)
+                    answer = generate_answer(gemini_model, s, chunks)
                 except Exception as e:
                     answer = f"❌ حدث خطأ: {e}"
                     chunks = []
@@ -697,7 +688,7 @@ if submitted and user_input.strip():
     with st.spinner("جارٍ البحث وتوليد الإجابة..."):
         try:
             chunks = retrieve(texts, contexts, matrix, question)
-            answer = generate_answer(groq_client, question, chunks)
+            answer = generate_answer(gemini_model, question, chunks)
         except Exception as e:
             answer = f"❌ حدث خطأ: {e}"
             chunks = []
