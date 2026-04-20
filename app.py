@@ -48,6 +48,7 @@ SYSTEM_PROMPT = """\
 
 # ── Inject Google Fonts + full design system ──────────────────────────────────
 st.markdown("""
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -462,91 +463,89 @@ st.markdown("""
    MOBILE  (≤ 640px)
 ────────────────────────────────────────────── */
 @media (max-width: 640px) {
+    /* Viewport meta fallback */
+    html { -webkit-text-size-adjust: 100%; }
+
     .block-container {
-        padding: 0 14px 100px !important;
+        padding: 0 12px 40px !important;
+        max-width: 100% !important;
     }
 
     /* Header */
     .app-header {
-        padding: 32px 8px 20px !important;
+        padding: 24px 4px 16px !important;
     }
     .kaaba-wrap {
-        width: 60px !important; height: 60px !important;
-        font-size: 28px !important;
-        margin-bottom: 16px !important;
+        width: 56px !important; height: 56px !important;
+        font-size: 26px !important;
+        margin-bottom: 14px !important;
     }
     .app-header h1 {
-        font-size: 1.25rem !important;
+        font-size: 1.15rem !important;
         line-height: 1.5 !important;
     }
     .app-header p {
-        font-size: 0.82rem !important;
+        font-size: 0.8rem !important;
         line-height: 1.7 !important;
     }
+    .divider { margin: 4px 0 20px !important; }
 
-    /* Suggestion chips — stack vertically */
-    [data-testid="stHorizontalBlock"] {
-        flex-direction: column !important;
-        gap: 8px !important;
-    }
+    /* Suggestion chips — each takes full width */
     .stButton > button {
-        font-size: 0.85rem !important;
-        padding: 11px 16px !important;
+        font-size: 0.83rem !important;
+        padding: 10px 14px !important;
     }
 
     /* Chat bubbles */
     .msg-user .bubble {
-        max-width: 90% !important;
-        font-size: 0.92rem !important;
-        padding: 12px 16px !important;
+        max-width: 88% !important;
+        font-size: 0.88rem !important;
+        padding: 10px 14px !important;
+        line-height: 1.7 !important;
     }
     .msg-assistant .bubble {
-        max-width: 95% !important;
-        font-size: 0.92rem !important;
-        padding: 12px 16px !important;
+        max-width: 92% !important;
+        font-size: 0.88rem !important;
+        padding: 10px 14px !important;
+        line-height: 1.8 !important;
     }
     .bot-avatar {
-        width: 32px !important; height: 32px !important;
-        font-size: 16px !important;
+        width: 30px !important; height: 30px !important;
+        font-size: 15px !important;
     }
     .msg-assistant { gap: 8px !important; }
+    .msg-wrap { margin-bottom: 16px !important; }
 
-    /* Input form — stick to bottom */
+    /* Input form — normal flow, pill shape intact */
     [data-testid="stForm"] {
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        margin: 0 !important;
-        border-radius: 20px 20px 0 0 !important;
-        padding: 10px 12px !important;
-        z-index: 999 !important;
-        border-left: none !important;
-        border-right: none !important;
-        border-bottom: none !important;
-        box-shadow: 0 -4px 24px rgba(0,0,0,0.10) !important;
-    }
-    [data-testid="stForm"]:focus-within {
-        border-radius: 20px 20px 0 0 !important;
+        border-radius: 16px !important;
+        padding: 8px 10px !important;
+        margin-top: 20px !important;
     }
 
-    /* Send button — smaller on mobile */
+    /* Send button */
     [data-testid="stForm"] .stFormSubmitButton > button {
-        padding: 10px 18px !important;
-        font-size: 0.88rem !important;
-        height: 40px !important;
+        padding: 8px 16px !important;
+        font-size: 0.85rem !important;
+        height: 38px !important;
     }
 
-    /* Input text */
+    /* Input text — prevent iOS zoom (must be ≥16px) */
     .stTextInput > div > div > input,
     [data-baseweb="base-input"] input {
-        font-size: 0.95rem !important;
+        font-size: 16px !important;
     }
 
-    /* Source chips — smaller */
+    /* Source chips */
     .src-chip {
-        font-size: 0.65rem !important;
-        padding: 2px 9px !important;
+        font-size: 0.62rem !important;
+        padding: 2px 8px !important;
+    }
+
+    /* Columns used in form — allow wrap */
+    [data-testid="stForm"] [data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        align-items: center !important;
     }
 }
 </style>
